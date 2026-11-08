@@ -1,6 +1,6 @@
 # VectorPie Vectrex Emulator – Status
 
-Stand: 2026-11-08 · Version 0.1.0 (nichts committet, nichts auf dem Automaten installiert)
+Stand: 2026-11-08 · Version 0.1.0 (committet als `e093417` im lokalen Repo, kein Remote; nichts auf dem Automaten installiert)
 
 ## Ziel
 Ein zyklengenauer Vectrex-Emulator als VectorPie-Spielpaket (`.vpk`) für den Vektor-Automaten: Pi 4/5, USB-DVG oder BeamForge, RGB-Vektormonitor. Er spielt auch UVMC2-Spiele (`.um2`) und PiTrex-Programme.
