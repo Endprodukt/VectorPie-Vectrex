@@ -1,0 +1,22 @@
+# VectorPie Vectrex Emulator – Fortsetzen
+
+- **VectorPie:** unser Vektor-Automat. SDK unter https://github.com/Goldfinch2/VectorPie (`sdk/docs/`), lokal in `external/VectorPie`. Der Automat ist `pi@192.168.0.122` (Pi 5, USB-DVG), SSH-Key `~/.ssh/id_ed25519_vectorpie`.
+- **Vorlage:** `F:\MajorHavocPEEnhanced`, mit `BUILD.md`, `RESUME.md`, `platform/menu.c` (Menü), `tools/pack.sh` und `tools/deploy.sh`.
+- **Builds:** siehe `BUILD.md`. `build/pc` und `build/pi` sind konfiguriert, `cmake --build build/pc` bzw. `build/pi`. Für den PC zuerst `export PATH="/c/msys64/mingw64/bin:$PATH"`.
+- **Kern:** `third_party/vectrex_emu/core`, unverändert, siehe `VENDOR.md`. Upstream-Klon als Referenz in `upstream/Vectrex_EMU` (Docs: `docs/TECHNICAL.md`, `RELEASE_NOTES.md`; Testmodule: `testcart/`; UVMC2-Images: `package/roms/*.um2`).
+  - Die Klebeschicht ist `src/core/vx_core.c`. Sie bindet `vtest.c` ein (`main` umbenannt) und nutzt dessen statische Funktionen: `run_frame`, `skip_boot`, `flash_save` sowie die Puffer `last`, `nlast`, `abuf`, `abuf_n`.
+  - `vx_open` wiederholt das Setup aus `vtest.c` `main`. Ändert upstream dort etwas, muss `vx_open` nachgezogen werden.
+  - Takt: `vx_run_frame` liefert die `alg_cycles` des Frames zurück.
+- **Programm:** `src/main.c`. Die Taktschleife sammelt „geschuldete“ Zyklen und rechnet maximal 3 Frames pro Schleifendurchlauf. Optionen: `--skip-bios`, `--frames N`, `--svg OUT` und die SDK-Optionen.
+- **Tests:**
+  - Timing-Testmodul mit `vxtest`, Erwartungswerte in `BUILD.md`.
+  - Bildeinstellungen über `vectrex --frames 250 --svg x.svg` und `magick x.svg x.png`.
+  - Pi headless: `vxtest`, BIOS und Images nach `/tmp/vxtest` kopieren und dort starten. `/usr/bin/time` gibt es dort nicht, stattdessen bash `time`.
+- **Spielauswahl:** `src/platform/browser.c` (Bildschirm, Bedienung), `roms.c` (Ordner, Namen, `vx_rom_resolve`), `main.c` (`run_browser`, `game_argv`, `spawn_wait`). Testoptionen: `--list`, `--pick N`, `--child-frames N`. Für Tests liegen Module in `build/pc/roms/`.
+- **Optionsmenü:** `src/platform/menu.c`. Seiten: `page_lines`, Werte: `describe`, Änderungen: der Switch in `vx_menu_update`, Speichern: `vx_menu_save`. Eingebunden in `main.c` `run_game`.
+  - Screenshots: `vectrex --minestorm --windowed --menu SEITE --frames 300`, Fenster mit `scratchpad/shot.ps1` aufnehmen oder per PowerShell `CopyFromScreen`.
+  - Logik-Tests: `build/pc/vxunit.exe ORDNER`.
+  - Keine simulierten Tasten auf dem Desktop des Besitzers.
+- **Automat:** Programme nie ohne Auftrag am Board starten. Headless sind nur `vxtest` und `vectrex --list` unbedenklich. Jeder andere Aufruf öffnet laut advmame.rc das Board.
+- **UVMC2-Tempo:** Der Modus wird über die Umgebungsvariable `VT_UVM2_FAST` gesetzt, bevor `vx_open` aufgerufen wird (`main.c`). Die Messwerte stehen in `STATUS.md`.
+- **Offen und nächste Schritte:** siehe `STATUS.md`.

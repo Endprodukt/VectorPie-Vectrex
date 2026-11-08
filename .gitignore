@@ -1,0 +1,10 @@
+build/
+upstream/
+external/
+_scratch/
+# videos never go to GitHub
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.webm
