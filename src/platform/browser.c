@@ -1,4 +1,5 @@
 #include "platform/browser.h"
+#include "platform/controls.h"
 
 #include <vectorpie/vp_controls.h>
 
@@ -34,22 +35,22 @@ static int first_letter(const vx_rom_list *l, int e)
 int vx_browser_update(vx_browser *b, const vx_rom_list *l, vp_input *in, double now)
 {
     int count = l->n + 1;
-    int select_held = vp_input_menu_confirm_held(in) || vp_input_held(in, "ui_select") ||
-                      vp_input_held(in, "p1_button1");
+    vx_nav nav = vx_menu_nav(in);               /* (the VectorPie menu's controls, controls.h) */
+    int select_held = nav.fire_held;
     if (!b->armed) {                /* (a game just left, or the list just opened: its key may still be down) */
         if (!select_held) b->armed = 1;
         return -1;
     }
-    int y = vp_input_menu_way_y(in);
+    int y = nav.y;
     int step = 0;
-    if (vp_input_menu_up(in)) { step = -1; b->rep_dir = -1; b->rep_at = now + 0.40; }
-    else if (vp_input_menu_down(in)) { step = 1; b->rep_dir = 1; b->rep_at = now + 0.40; }
+    if (nav.py < 0) { step = -1; b->rep_dir = -1; b->rep_at = now + 0.40; }
+    else if (nav.py > 0) { step = 1; b->rep_dir = 1; b->rep_at = now + 0.40; }
     else if (y != 0 && y == b->rep_dir && now >= b->rep_at) { step = y; b->rep_at = now + 0.07; }
     else if (y == 0) b->rep_dir = 0;
     if (step) b->sel = (b->sel + step + count) % count;
 
-    if (vp_input_menu_right_pressed(in) || vp_input_menu_left_pressed(in)) {
-        int dir = vp_input_menu_right_pressed(in) ? 1 : -1;
+    if (nav.px) {
+        int dir = nav.px;
         int c0 = first_letter(l, b->sel), e = b->sel;
         for (int k = 1; k < count; k++) {
             e = (e + dir + count) % count;
@@ -61,7 +62,7 @@ int vx_browser_update(vx_browser *b, const vx_rom_list *l, vp_input *in, double 
         }
         b->sel = e;
     }
-    if (vp_input_menu_confirm(in) || vp_input_pressed(in, "ui_select") || vp_input_pressed(in, "p1_button1")) {
+    if (nav.fire) {
         b->armed = 0;
         return b->sel;
     }
@@ -107,6 +108,6 @@ void vx_browser_draw(const vx_browser *b, const vx_rom_list *l, vp_dvg *d, doubl
         vp_text(d, "NO CARTRIDGES FOUND: PUT THEM IN", 2048, 760, 60, VP_TEXT_CENTER);
         vp_text(d, l->dirs[0], 2048, 660, 55, VP_TEXT_CENTER);   /* (the first folder: on the cabinet /persistent/games/rom/vectrex) */
     }
-    snprintf(hint, sizeof hint, "START: PLAY    ESC: BACK    %d / %d", b->sel + 1, count);
+    snprintf(hint, sizeof hint, "START: PLAY    TAB: OPTIONS    ESC: BACK    %d / %d", b->sel + 1, count);
     vp_text(d, hint, 2048, 330, 60, VP_TEXT_CENTER);
 }

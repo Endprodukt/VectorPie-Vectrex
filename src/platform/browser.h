@@ -4,6 +4,7 @@
  *   up / down       a game (held: repeats)
  *   left / right    the previous / next first letter
  *   START 1, Enter, button 1 (ui_select)   play it
+ *   Tab or F2 (ui_configure, service)      the options of the game chosen (platform/menu.h)
  *   Esc (ui_cancel) back to the VectorPie menu
  *
  * Looks like the VectorPie menu: the game chosen full size in the middle, pulsing, the others

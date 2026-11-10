@@ -5,4 +5,7 @@
 - **Unchanged.** Our glue is `src/core/vx_core.c`, which includes `vtest.c`. Changes we need in the core itself should be kept small and listed here, so that a newer upstream can be merged.
 
 ## Our changes
-None yet.
+- 2026-11-09, `core/speakjet.c`, `core/vecx.c`: port 2 device 7 (`vt_set_analog(27, 7)`, `VT_SPEECHDEV=auto`) = a speech
+  module that is the VecVox or the VecVoice as the game talks to it (an AtariVox+): `sp_auto`, `speech_put`; the
+  choice in `speech_byte` (a byte from 64 up: the VecVox; three below 64 first: the VecVoice, until one from 64 up
+  comes), the ready line open while it is not known (`speech_ready`), `sp_start ("auto")`, `p2_set` takes 7.

@@ -1,0 +1,9 @@
+sp0256-al2.bin - the SP0256-AL2 allophone ROM (2048 bytes, CRC32 DF8DE0B0), for the speech modules
+on controller port 2 (AtariVox, VecVox, VecVoice).
+
+Microchip Technology Inc. holds the copyright to the SP0256-AL2 ROM image and retains the
+intellectual property rights to the algorithms and data it contains.
+
+Downloaded 2026-11-08 from Joe Zbiciak's page http://spatula-city.org/~im14u2c/sp0256-al2/ (al2.bin),
+where it is distributed with Microchip's permission (Microchip legal department, 2007-08-09).
+It is not part of this project's source repository (.gitignore).

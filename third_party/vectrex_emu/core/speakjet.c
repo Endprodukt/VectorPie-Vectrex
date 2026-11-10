@@ -106,13 +106,34 @@ static int16_t sj_sample (void)
 /* the speech device: its next sample, a byte from the serial link, its ready line (1 = takes the next) */
 static int speech_rate (void) { return 10000; }
 static int16_t speech_sample (void) { return vt_vecvoice == 2 ? sj_sample () : sp_sample (); }
-static void speech_byte (unsigned b)
+/* VectorPie: "auto" (an AtariVox+ either way): which device the game talks to, from its bytes - the
+ * VecVoice takes allophones 0-63 only, the VecVox phonemes 128-199 and control values from 64 up. The first
+ * bytes wait (up to 3) until one from 64 up says VecVox, else they go to the VecVoice; one from 64 up later
+ * still turns it into the VecVox. (sp_auto: 0 off, 1 not yet known, 2 the VecVoice so far) */
+static int sp_auto; static unsigned sp_apend[3]; static int sp_apn;
+static void speech_put (unsigned b)
 {
-	if (getenv ("VT_SPLOG")) fprintf (stderr, "byte %02X\n", b & 0xff);
 	if (vt_vecvoice == 2) { if (sj_qn < 64) { sj_q[(sj_qh + sj_qn) & 63] = (unsigned char) b; sj_qn++; } }
 	else sp_ald_w (b);
 }
-static int speech_ready (void) { return vt_vecvoice == 2 ? sj_qn < 32 : sp_lrq; }
+static void speech_byte (unsigned b)
+{
+	if (getenv ("VT_SPLOG")) fprintf (stderr, "byte %02X\n", b & 0xff);
+	if (sp_auto && (b & 0xff) >= 64) {          /* (the VecVox) */
+		if (vt_vecvoice != 2) { vt_vecvoice = 2; sp_reset (); }
+		for (int i = 0; i < sp_apn; i++) speech_put (sp_apend[i]);
+		sp_apn = 0; sp_auto = 0;
+	} else if (sp_auto == 1) {                  /* (not known yet: wait) */
+		sp_apend[sp_apn++] = b & 0xff;
+		if (sp_apn < 3) return;
+		sp_auto = 2;                            /* (the VecVoice, so far) */
+		for (int i = 0; i < sp_apn; i++) speech_put (sp_apend[i]);
+		sp_apn = 0;
+		return;
+	}
+	speech_put (b);
+}
+static int speech_ready (void) { return sp_auto == 1 ? 1 : vt_vecvoice == 2 ? sj_qn < 32 : sp_lrq; }
 
 /* every allophone's own length, measured once by speaking it */
 static void sp_measure (void)
@@ -132,5 +153,6 @@ void sp_start (const char *dev)
 {
 	sp_measure ();
 	vt_vecvoice = (dev && !strcmp (dev, "vecvox")) ? 2 : 1;
+	sp_auto = dev && !strcmp (dev, "auto"); sp_apn = 0;   /* (VectorPie: the device from the game's bytes) */
 	sp_reset (); sj_reset ();
 }

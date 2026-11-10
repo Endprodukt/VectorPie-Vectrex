@@ -72,8 +72,11 @@ if(VX_BUILD_GAME)
         src/platform/browser.c
         src/platform/config.c
         src/platform/roms.c
+        src/platform/coloredit.c
         src/platform/controls.c
         src/platform/menu.c
+        src/platform/port2.c
+        src/render/colors.c
         src/render/draw.c
     )
     target_link_libraries(vxout PUBLIC vxcore vectorpie)
@@ -87,7 +90,15 @@ if(VX_BUILD_GAME)
     configure_file(package/game.ini ${CMAKE_CURRENT_BINARY_DIR}/game.ini COPYONLY)
     configure_file(package/vectrex.ini ${CMAKE_CURRENT_BINARY_DIR}/vectrex.ini COPYONLY)
     configure_file(package/names.ini ${CMAKE_CURRENT_BINARY_DIR}/names.ini COPYONLY)
+    file(GLOB VX_PROFILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package/colors/*.ini)
+    foreach(f ${VX_PROFILES})
+        get_filename_component(n ${f} NAME)
+        configure_file(${f} ${CMAKE_CURRENT_BINARY_DIR}/colors/${n} COPYONLY)
+    endforeach()
     configure_file(package/system/bios.bin ${CMAKE_CURRENT_BINARY_DIR}/system/bios.bin COPYONLY)
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/package/system/sp0256-al2.bin)    # (the speech ROM: not in the repository)
+        configure_file(package/system/sp0256-al2.bin ${CMAKE_CURRENT_BINARY_DIR}/system/sp0256-al2.bin COPYONLY)
+    endif()
 endif()
 
 if(VX_BUILD_GAME)
@@ -95,4 +106,33 @@ if(VX_BUILD_GAME)
     add_executable(vxunit tools/vxunit/main.c)
     target_link_libraries(vxunit PRIVATE vxout)
     vp_program(vxunit)
+endif()
+
+if(VX_BUILD_GAME)
+    # vxcolor: the colour editor from the command line, for an AI or a script (docs/AI_GUIDE.md).
+    add_executable(vxcolor tools/vxcolor/main.c)
+    target_link_libraries(vxcolor PRIVATE vxout)
+    target_compile_options(vxcolor PRIVATE -Wall -Wextra)
+    vp_program(vxcolor)
+endif()
+
+if(VX_BUILD_GAME AND WIN32)
+    # Vectrex Colour Studio: the PC's colour editor for the cabinet (src/studio/studio.cpp; Dear ImGui
+    # 1.91.5 in third_party/imgui, MIT).
+    set(VX_IMGUI ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
+    add_executable(vxstudio WIN32
+        src/studio/studio.cpp
+        ${VX_IMGUI}/imgui.cpp ${VX_IMGUI}/imgui_draw.cpp ${VX_IMGUI}/imgui_tables.cpp ${VX_IMGUI}/imgui_widgets.cpp
+        ${VX_IMGUI}/backends/imgui_impl_sdl2.cpp ${VX_IMGUI}/backends/imgui_impl_sdlrenderer2.cpp)
+    target_include_directories(vxstudio PRIVATE ${VX_IMGUI} src)
+    set_target_properties(vxstudio PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON OUTPUT_NAME "Vectrex Colour Studio")
+    target_link_libraries(vxstudio PRIVATE vxout)
+    vp_program(vxstudio)
+endif()
+
+if(VX_BUILD_GAME)
+    # A game without a screen: its picture with the colour profile as SVG (tools/vxshot/main.c).
+    add_executable(vxshot tools/vxshot/main.c)
+    target_link_libraries(vxshot PRIVATE vxout)
+    vp_program(vxshot)
 endif()

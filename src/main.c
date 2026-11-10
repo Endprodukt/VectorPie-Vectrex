@@ -28,12 +28,15 @@
 #include "platform/config.h"
 #include "platform/controls.h"
 #include "platform/menu.h"
+#include "platform/port2.h"
 #include "platform/roms.h"
+#include "render/colors.h"
 #include "render/draw.h"
 
 #include <vectorpie/vp.h>
 #include <vectorpie/vp_paths.h>
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,7 +83,7 @@ static void load_config(vx_config *all, vx_config *game, const char *id)
     }
 }
 
-static void write_svg(const char *fn, const vx_config *cfg, const vx_line *l, int n)
+static void write_svg(const char *fn, const vx_config *cfg, const vx_colors *colors, const vx_line *l, int n)
 {
     FILE *f = fopen(fn, "w");
     if (!f) { perror(fn); return; }
@@ -90,14 +93,14 @@ static void write_svg(const char *fn, const vx_config *cfg, const vx_line *l, in
                "<rect width='100%%' height='100%%' fill='black'/><rect x='1' y='1' width='%d' height='%d' "
                "fill='none' stroke='#333'/>\n", W, H, W, H, W - 2, H - 2);
     for (int i = 0; i < n; i++) {
-        if (!l[i].z) continue;
+        uint8_t r, g, b;
+        if (!vx_line_color(cfg, colors, &l[i], &r, &g, &b)) continue;
         float x0, y0, x1, y1;
         vx_map(cfg, l[i].x0, l[i].y0, &x0, &y0);
         vx_map(cfg, l[i].x1, l[i].y1, &x1, &y1);
-        int v = 60 + l[i].z * 195 / 127;
         fprintf(f, "<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' stroke='rgb(%d,%d,%d)' stroke-width='1.5' "
                    "stroke-linecap='round'/>\n", x0 * W / 4096.0, H - y0 * H / 4096.0, x1 * W / 4096.0,
-                H - y1 * H / 4096.0, v, v, v);
+                H - y1 * H / 4096.0, r, g, b);
     }
     fprintf(f, "</svg>\n");
     fclose(f);
@@ -148,6 +151,22 @@ static int run_game(const char *cart, int argc, char **argv)
         fprintf(stderr, "vectrex: %s\n", err);
         return 1;
     }
+    vx_set_mains_hum(cfg.mains_hum);
+    {   /* the speech modules' ROM, if it is there (not part of the package) */
+        char rom[1024];
+        if (vx_load_speech_rom(vp_asset_path("system/sp0256-al2.bin", rom, sizeof rom)) != 0 &&
+            (cfg.port2 == VX_P2_ATARIVOX || cfg.port2 == VX_P2_VECVOX || cfg.port2 == VX_P2_VECVOICE))
+            fprintf(stderr, "vectrex: speech needs system/sp0256-al2.bin: silent\n");
+    }
+    static vx_port2_dev p2dev;
+    vx_port2_setup(&p2dev, &cfg);
+    static vx_colors colors;
+    int profile_loaded = cfg.color_profile;     /* (the setting the colours were loaded for) */
+    vx_colors_game(cart);                       /* (its checksum: its profiles found by it) */
+    if (vx_colors_load_setting(&colors, id, cfg.color_profile) == 0) {
+        printf("vectrex: colour profile %s (%d rules)%s\n", colors.file, colors.n,
+               vx_colors_file_fits(colors.file) ? "" : ", made for another version of the game");
+    }
 
     vx_app app;
     if (vx_app_open(&app, "Vectrex", argc, argv, cfg.board_hz, cfg.monitor == VX_MONITOR_VERTICAL)) return 1;
@@ -166,7 +185,7 @@ static int run_game(const char *cart, int argc, char **argv)
     game_title(cart, title, sizeof title);
     int leave = 0;
     if (vx_arg(argc, argv, "--menu")) {     /* (development: the menu open on that page at the start) */
-        vx_menu_open(&menu, &cfg, id, title, vx_cart() == VX_CART_UVMC2);
+        vx_menu_open(&menu, &cfg, &all, id, title, vx_cart() == VX_CART_UVMC2, 0);
         menu.page = atoi(vx_arg(argc, argv, "--menu"));
         app.hold_cancel = 1;
     }
@@ -175,12 +194,18 @@ static int run_game(const char *cart, int argc, char **argv)
         vx_controls_read(&ctl, app.in, &cfg, dt, &p1, &p2);
         if (!menu.open && !vp_input_held(app.in, "ui_cancel")) app.hold_cancel = 0;   /* (Esc let go after the menu) */
         if (!menu.open && ctl.menu) {
-            vx_menu_open(&menu, &cfg, id, title, vx_cart() == VX_CART_UVMC2);
+            vx_menu_open(&menu, &cfg, &all, id, title, vx_cart() == VX_CART_UVMC2, 0);
             app.hold_cancel = 1;    /* Esc is the menu's now */
         } else if (menu.open) {
             switch (vx_menu_update(&menu, &cfg, &all, app.in, &p1, app.clock)) {
             case VX_MENU_CHANGED:
+                if (cfg.color_profile != profile_loaded) {     /* another profile chosen: its colours */
+                    profile_loaded = cfg.color_profile;
+                    vx_colors_load_setting(&colors, id, cfg.color_profile);
+                }
                 if (app.on_board) app.frame_hz = cfg.board_hz;
+                vx_port2_setup(&p2dev, &cfg);
+                vx_set_mains_hum(cfg.mains_hum);
                 break;
             case VX_MENU_RESTART:
                 vx_power_on(cfg.skip_bios);
@@ -202,8 +227,8 @@ static int run_game(const char *cart, int argc, char **argv)
             const vx_line *l;
             int n = vx_lines(&l);
             vx_app_begin_frame(&app);
-            if (vx_menu_on_picture(&menu)) vx_draw_lines(app.dvg, &cfg, l, n);
-            vx_menu_draw(&menu, &cfg, app.in, app.dvg);
+            if (vx_menu_on_picture(&menu)) vx_draw_lines(app.dvg, &cfg, &colors, l, n);
+            vx_menu_draw(&menu, &cfg, &all, app.in, app.dvg);
             if (vx_app_end_frame(&app) != 0) break;
             if (max_frames && ++sent >= max_frames) break;
             continue;
@@ -212,25 +237,31 @@ static int run_game(const char *cart, int argc, char **argv)
          * rest forgiven, so a stall does not make it race after) */
         owed += dt * VX_CPU_HZ;
         if (owed > 3 * 30000.0) owed = 3 * 30000.0;
+        vx_port2_read(&p2dev, app.in, &cfg);
+        if (cfg.port2 != VX_P2_JOYSTICK) { p2.x = p2.y = 0; p2.buttons = 0; }   /* (player 2's controller is not on the port) */
         int ran = 0;
         while (owed > 0.0 && ran < 3) {
             vx_set_input(&p1, &p2);
             owed -= (double)vx_run_frame();
             int nf, ch;
             const int16_t *s = vx_audio(&nf, &ch);
-            vx_audio_feed(s, nf, ch, cfg.volume);
+            int speech = cfg.port2 == VX_P2_VECVOX || cfg.port2 == VX_P2_ATARIVOX || cfg.port2 == VX_P2_VECVOICE;
+            vx_audio_feed(s, nf, ch, cfg.volume, speech ? 2.0f * cfg.speech_volume : 1.0f);   /* (vx_core.h) */
             ran++;
         }
         const vx_line *l;
         int n = vx_lines(&l);
+        vx_colors_frame(&colors);
         vx_app_begin_frame(&app);
-        vx_draw_lines(app.dvg, &cfg, l, n);
+        vx_draw_lines(app.dvg, &cfg, &colors, l, n);
         if (vx_app_end_frame(&app) != 0) break;
-        if (max_frames && ++sent >= max_frames) {
-            if (svg) write_svg(svg, &cfg, l, n);
+        ++sent;
+        if (max_frames && sent >= max_frames) {
+            if (svg) write_svg(svg, &cfg, &colors, l, n);
             break;
         }
     }
+    vx_set_port2_hook(NULL, NULL);
     vx_audio_close();
     vx_app_close(&app);
     vx_close();
@@ -348,10 +379,47 @@ static int run_browser(int argc, char **argv)
             return 1;
         }
         app.hold_cancel = 1;            /* (until Esc is seen up: the game just left with it) */
+        printf("vectrex: list ready, %d games\n", roms.n + 1);   /* (in run.log: how long a return takes) */
+        fflush(stdout);
         int play = -1;
+        static vx_menu menu;            /* the options for the game chosen (Tab / F2) */
+        static vx_config gall, gcfg;
+        vx_controls ctl;
+        vx_pad p1 = { 0, 0, 0 }, p2 = { 0, 0, 0 };
+        menu.open = 0;
+        const char *opt = vx_arg(argc, argv, "--menu");     /* (development: the list's options at the start) */
         double dt;
         while (vx_app_poll(&app, &dt)) {
-            if (!vp_input_held(app.in, "ui_cancel")) app.hold_cancel = 0;
+            if (!menu.open && !vp_input_held(app.in, "ui_cancel")) app.hold_cancel = 0;
+            if (menu.open) {
+                vx_controls_read(&ctl, app.in, &gcfg, dt, &p1, &p2);
+                int r = vx_menu_update(&menu, &gcfg, &gall, app.in, &p1, app.clock);
+                if (r == VX_MENU_CLOSE || r == VX_MENU_QUIT) {
+                    vx_menu_save(&menu, &gcfg, &gall, app.in);
+                    menu.open = 0;
+                    br.armed = 0;               /* (the key that closed it may still be down) */
+                    load_config(&all, &cfg, NULL);
+                    if (app.on_board) app.frame_hz = cfg.board_hz;
+                }
+                vx_app_begin_frame(&app);
+                if (menu.open && vx_menu_on_picture(&menu))     /* (the level shown: all games or the game's) */
+                    vx_draw_frame(app.dvg, menu.scope == VX_SCOPE_ALL ? &gall : &gcfg);
+                if (menu.open) vx_menu_draw(&menu, &gcfg, &gall, app.in, app.dvg);
+                else vx_browser_draw(&br, &roms, app.dvg, app.clock);
+                if (vx_app_end_frame(&app) != 0) { app.quit = 1; break; }
+                if (max_frames && ++sent >= max_frames) { app.quit = 1; break; }
+                continue;
+            }
+            if (vx_options_key(app.in) || opt) {
+                const char *gid = vx_browser_id(&roms, br.sel);
+                load_config(&gall, &gcfg, gid);
+                vx_controls_init(&ctl, app.in, gid);
+                vx_menu_open(&menu, &gcfg, &gall, gid, vx_browser_name(&roms, br.sel),
+                             br.sel > 0 && roms.rom[br.sel - 1].uvmc2, 1);
+                if (opt) { menu.page = atoi(opt); opt = NULL; }
+                app.hold_cancel = 1;            /* Esc is the menu's now */
+                continue;
+            }
             play = vx_browser_update(&br, &roms, app.in, app.clock);
             if (pick >= 0) { play = br.sel = pick < roms.n + 1 ? pick : 0; pick = -1; }
             vx_app_begin_frame(&app);
@@ -371,6 +439,29 @@ static int run_browser(int argc, char **argv)
         fflush(stdout);
         int r = spawn_wait(args);
         if (r != 0) fprintf(stderr, "vectrex: the game ended with %d\n", r);
+#ifndef _WIN32
+        /* The list again as a fresh process, as the game started: on the cabinet the list's controls were
+         * dead for a long while after a game when the list took SDL's video (on the Pi KMS/DRM, which the
+         * keyboard comes through) up a second time in one process (the likely cause, 2026-11-08). The
+         * game just played is the one chosen (save/browser.ini). */
+        {
+            const char *self[40];
+            int k = 0;
+            self[k++] = args[0];
+            for (int i = 1; i < argc && k < 39; i++) {
+                if ((!strcmp(argv[i], "--pick") || !strcmp(argv[i], "--child-frames") || !strcmp(argv[i], "--menu")) &&
+                    i + 1 < argc) { i++; continue; }   /* (the development options: once only) */
+                self[k++] = argv[i];
+            }
+            self[k] = NULL;
+            fflush(stdout);
+            fflush(stderr);
+            vx_roms_free(&roms);
+            execv(self[0], (char *const *)self);
+            fprintf(stderr, "vectrex: cannot start the list again: %s\n", strerror(errno));
+            return 1;
+        }
+#endif
     }
     vx_roms_free(&roms);
     return 0;

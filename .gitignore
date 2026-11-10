@@ -8,3 +8,6 @@ _scratch/
 *.avi
 *.mov
 *.webm
+
+# the SP0256-AL2 ROM: Microchip's, distributed by Joe Zbiciak with their permission (package/system/SP0256-AL2.txt); kept out of the repository
+/package/system/sp0256-al2.bin

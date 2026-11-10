@@ -10,11 +10,19 @@
 
 #include "core/vx_core.h"
 #include "platform/config.h"
+#include "render/colors.h"
 
 #include <vectorpie/vp_dvg.h>
 
 /* The canvas point (cx, cy) in board units. */
 void vx_map(const vx_config *cfg, double cx, double cy, float *x, float *y);
-void vx_draw_lines(vp_dvg *d, const vx_config *cfg, const vx_line *l, int n);
+/* colors: the game's colour profile (render/colors.h; NULL or cfg->color_profile 0: the picture's own
+ * colour). */
+void vx_draw_lines(vp_dvg *d, const vx_config *cfg, const vx_colors *colors, const vx_line *l, int n);
+/* A line's colour as drawn (the profile's or the picture's, dimmed by its brightness): 0 if it is dark. */
+int  vx_line_color(const vx_config *cfg, const vx_colors *colors, const vx_line *l, uint8_t *r, uint8_t *g, uint8_t *b);
+/* The Vectrex's screen as a frame with a cross in its middle, in the settings' size and place (the
+ * picture page when no game runs). */
+void vx_draw_frame(vp_dvg *d, const vx_config *cfg);
 
 #endif

@@ -1,0 +1,118 @@
+COLOUR EDITOR
+=============
+
+Colour any Vectrex game. No technical knowledge is needed.
+
+Games are coloured on a PC with the Vectrex Colour Studio (below), like in a
+paint program. The cabinet shows the profiles made there and has two simple
+colour modes of its own. It has no editor.
+
+
+ON THE CABINET
+--------------
+  Tab / F2 -> PICTURE:
+
+  COLOUR PROFILE      the game's colours:
+                      OFF                 the game's own look
+                      ORIGINAL            the profile that comes with the emulator
+                      PROFILE 1, 2, 3 ... your own, made in the Studio
+  COLOUR MODE         without a profile:
+                      ONE COLOUR          the whole picture in the colour of the
+                                          COLOUR line
+                      BY BRIGHTNESS       a colour for each of the game's four
+                                          brightness levels
+  BRIGHTNESS COLOURS  with BY BRIGHTNESS: a ready set of four colours. The four
+                      lines below it change each colour by itself
+
+
+PROFILES
+--------
+  Each game can have several colour profiles: OFF, ORIGINAL and your own
+  (PROFILE 1, 2, 3 ...).
+
+  The Studio never overwrites ORIGINAL:
+  - On ORIGINAL or OFF it saves a NEW profile, starting from the colours
+    you see.
+  - On one of your own profiles it changes that profile.
+
+
+WHAT A COLOUR CAN COUNT FOR
+---------------------------
+  The Studio starts with Same kind, which is right most of the time.
+
+  Same kind      everything that looks like it: one coin makes all coins, one
+                 wall all walls drawn with it, one enemy all enemies of its kind
+  Whole figure   everything connected to it: the whole figure
+  Shape          this shape wherever it appears (e.g. every mine of this kind)
+  Line           single lines of the shape
+  Object         everything belonging to this object (e.g. the ship and its
+                 explosion)
+  Group          this kind of object nearby (e.g. mines, but not shots)
+  Code           everything one part of the game draws (good for games without
+                 shapes)
+  Routine        everything drawn the same way (e.g. all text, all dots)
+
+  Not sure which to choose? Try each one and watch which lines glow.
+
+
+VECTREX COLOUR STUDIO (PC)
+--------------------------
+  A Windows program to colour games like in a paint program.
+  Hover any control for help.
+
+  1. Start "Vectrex Colour Studio.exe".
+  2. Cabinet -> Connect...: the cabinet's address, user and password (the
+     password is not saved). The Cabinet tab then lists its games; a game
+     clicked there is fetched with its profiles.
+  3. Play to the scene you want (arrows, A S D F = buttons 1-4, or a
+     gamepad), then Space pauses (or click into the picture).
+  4. Click a line, then a colour. Done. "Same kind" is on at the start:
+     everything that looks like the line gets the colour. What will
+     change glows light blue first. Shift+click adds more lines.
+  5. "Whole figure" colours everything touching the line instead. The
+     other modes are under "Advanced modes". Ctrl+Z undoes.
+  6. Save (Ctrl+S), then Cabinet -> Send profile and use it there.
+
+  In the game lists: a green dot = the game has an ORIGINAL colour profile,
+  a green ring = only own profiles, +N = how many own ones. On the right
+  (connected): both / PC only / cabinet only (the same game: same checksum).
+  Right-click a game: Copy to the cabinet / Copy to this PC. The buttons on
+  top copy all missing games. Nothing of the same name is overwritten.
+  Cabinet -> Sync colour profiles...: every ORIGINAL to the cabinet (a
+  different one there is kept in colors/old-DATE first) and the own profiles
+  the cabinet has not got. Own ones there with other rules stay.
+
+  Colour by game part (the ground per level):
+    1. In one part of the game (level 1): Remember part A.
+    2. In another part (level 2): Remember part B.
+    3. Click the first byte listed (the next one if colours change at the
+       wrong moment). The Studio keeps it for this game.
+    4. Tick "Only in this part of the game", colour the ground; then in the
+       next part colour it again.
+  Change a rule's colour: click it in the Rules list, then a colour.
+  Advanced -> Any vector list in a range: a gauge with a changing address.
+  Advanced options -> Any object in a range: figures drawn stroke by stroke
+       from tables (Berzerk Ultimate), one memory range per kind (hex).
+  Advanced -> Only where it is now: fixed scenery from the same code as the
+       rest (Clean Sweep: the vaults), only inside the picked lines' place.
+  Advanced -> Only lines of a length: short and long lines from one code
+       (Clean Sweep: money and walls). Click a line (or drag a box over a
+       few), then a colour: lines about as long get it. Or set the range
+       by hand (% of the picture height).
+
+  View -> Monitor glow         the glow of a vector monitor (off: clear lines;
+                               a pick dims everything else)
+  Settings -> Controls...      keys and gamepad buttons for the game and
+                               for play/pause, frame back, frame on
+  View -> Use the cabinet's picture settings   its brightness and colours
+  View -> Show uncoloured lines                magenta: no colour yet
+
+  Space                play or pause
+  , / .                one frame back / on (the last 250 are kept)
+  F4 ... F9, F10, F11  WHAT, Whole figure, Same kind
+  Delete               no colour (or the rule under the mouse)
+  Ctrl+Z / Ctrl+Y      undo / redo
+  Ctrl+S               save
+  Mouse wheel          zoom;  right drag: move the picture
+
+  The editor does not work with UVMC2 or PiTrex games.

@@ -542,10 +542,10 @@ static void p2_set (int d)
 	static const char *const DISC[] = { "narrow", "mine", "coaster" };
 	p2_env ("VT_IMAGER", d >= 3 && d <= 5 ? DISC[d - 3] : NULL);
 	p2_env ("VT_LIGHTPEN", d == 6 ? "1" : NULL);
-	p2_env ("VT_SPEECHDEV", d == 1 ? "vecvox" : d == 2 ? "vecvoice" : NULL);
+	p2_env ("VT_SPEECHDEV", d == 1 ? "vecvox" : d == 2 ? "vecvoice" : d == 7 ? "auto" : NULL);
 	im_init (); lp_init ();
 	vt_vecvoice = 0;
-	if ((d == 1 || d == 2) && vt_sp_rom) sp_start (d == 1 ? "vecvox" : "vecvoice");
+	if ((d == 1 || d == 2 || d == 7) && vt_sp_rom) sp_start (d == 1 ? "vecvox" : d == 2 ? "vecvoice" : "auto");   /* (7: VectorPie's auto, speakjet.c) */
 }
 
 static int vt_trial;                    /* (a dry run: no writes, VIA reads without side effects) */

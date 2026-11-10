@@ -13,10 +13,52 @@
   - Bildeinstellungen über `vectrex --frames 250 --svg x.svg` und `magick x.svg x.png`.
   - Pi headless: `vxtest`, BIOS und Images nach `/tmp/vxtest` kopieren und dort starten. `/usr/bin/time` gibt es dort nicht, stattdessen bash `time`.
 - **Spielauswahl:** `src/platform/browser.c` (Bildschirm, Bedienung), `roms.c` (Ordner, Namen, `vx_rom_resolve`), `main.c` (`run_browser`, `game_argv`, `spawn_wait`). Testoptionen: `--list`, `--pick N`, `--child-frames N`. Für Tests liegen Module in `build/pc/roms/`.
+- **Liste nach dem Spiel:**
+  - Linux: `run_browser` startet sich nach dem Kindprozess per `execv` neu. Dabei fallen die Entwickler-Optionen `--pick`, `--child-frames` und `--menu` weg.
+  - Windows: Die Schleife öffnet die App im selben Prozess neu.
+  - `run.log` zeigt jedes Mal `vectrex: list ready`.
+  - Selbsttest am Automaten: `sh tools/deploy.sh --pick 0 --child-frames 150` (Liste, 3 s Mine Storm, Liste).
+- **Optionen in der Liste:** `run_browser` öffnet `vx_menu` mit `in_list = 1` für das gewählte Spiel (eigene `gall`/`gcfg`, `vx_controls_init` mit seiner ID).
+- **Port 2:** `src/platform/port2.c` erzeugt die Leitungen. `vx_port2_setup` setzt Gerät und Hook im Kern, `vx_port2_read` liest einmal pro Update den Spinner/Trackball des Automaten. Der Kern-Hook steckt in `vx_core.c` (`run_frame_hooked`, eine Kopie von `run_frame` aus vtest.c mit Aufruf alle 500 Zyklen). Speech-ROM: `system/sp0256-al2.bin`.
+  - Test mit dem Narzod-Trackball-Patch v1.03 aus der Sitzung vom 2026-10-24 (`…/scratch-2026-10-24-15910a/Narzod_TrackballHack/`): `vxshot BIOS narzod.bin 160 x.svg --skip-bios --port2 trackball --spin "100-129:4" --peek C80E` muss `01` zeigen, mit `65532` (= −4) `02`.
+- **Farb-Editor:** `src/platform/coloredit.c` ist nur die Logik. Oberflächen: Colour Studio (PC) und `vxcolor`. Im Emulator selbst gibt es keinen Editor mehr (2026-11-10 entfernt, Wunsch des Owners; nicht wieder einbauen).
+  - Stücke kommen aus dem Kern: `vx_core.c` `number_pieces` setzt `piece`/`part`/`stroke` jeder Linie (neues Stück bei anderem U, anderem Aufrufer oder X-Sprung > 8; BIOS-Schrift als ein Stück). `vx_ce_pieces` sammelt sie, mit PC-Bereich über alle Routinen des Stücks.
+  - Stufen: SHAPE, LINE (`vx_ce_rule_line`: Teil, oder Strich bei Stücken mit einem Teil), OBJECT, GROUP, CODE (caller), ROUTINE.
+  - Lücken finden: an eine Kopie des Profils `rest_l = line : FF00FF` und `rest_d = dot : FF00FF` anhängen und rendern, alles Magenta ist ungefärbt.
+  - Pole Position: Gas ist Taste 3/4 (`--input "100-9000:4"`). Gegner kommen erst nach einer Weile (ab Frame ~2200).
+  - Vectorblade: Profil wird erzeugt (`tools/vxcolor/vectorblade/README.md`). ROM `build/pc/roms/vectorblade.bin` (V1.13 von GitHub), kalibrierte Speicherdatei daneben. Spiel starten: `run 1500; run 20 stick 0,1; run 10 stick 0,1 buttons 1`. Leben `C8B5` (ASCII-Ziffer), Level `C823`, Schild `C864`=40. Bosse bei Levelzähler 25/51/77/103.
+  - Pole Position, eigenes Auto: jede Lenkstellung ist eine eigene Liste (Code `0A70`); der Bügel braucht je Liste eigene Linien-Regeln. Lenken in `vxcolor`: `run 100; run 1500 buttons 4; run 2 stick -1,0 buttons 4` (kurz lenken, sonst Crash).
+  - Profile für mehrere Szenen: `vxshot` je Frame mit `--profile` der vorigen Stufe und `--save` der nächsten aufrufen (so entstand `spike.ini`). Farbnamen mit Leerzeichen als `SKY_BLUE`. Neue Profile in `package/colors/` kopiert CMake automatisch in die Builds.
+  - Skripten: `vxshot … --pieces` listet die Stücke, `--edit "STÜCK[.N]:SCOPE:FARBE[*GAIN],…" --save DATEI` (SCOPE shape/line/object/group/code/routine). Die 33 offiziellen Module liegen in der Sitzung im Scratchpad (`games/<id>.vec`), nicht im Repo.
+  - Regeln: `vx_ce_rule` (SHAPE = PC-Block + X-Bereich überlappender Listen; GROUP = PC-Block + U-Bereich mit Tabellen-Schrittweite ≥ 8). Navigation: `vx_ce_next`.
+  - **KI-Schnittstelle:** `tools/vxcolor/main.c` (Befehle → Editor-Kern), Anleitung `docs/AI_GUIDE.md`, Einstieg `CLAUDE.md`. Neue Editor-Funktionen dort als Befehl ergänzen und in der Anleitung beschreiben.
+  - **Colour Studio** (`src/studio/studio.cpp`, PC): ImGui-Oberfläche auf dem Editor-Kern (`vx_coloredit` als Zustand, `vx_ce_mouse_pick`, `vx_ce_refresh/take/remove/matches`). Automat über `run_ssh` (CreateProcess `ssh.exe`, `SSH_ASKPASS` = das Studio selbst, `VX_STUDIO_ASKPASS`). Testen ohne Tastendruck: `--shot`/`--demo-box`, echte Maus per PowerShell (SetCursorPos/mouse_event) mit `VX_STUDIO_SHOTS`.
+  - Auswahl: `vx_ce_mouse_pick` (Klick/Kasten, testbar), Mehrfachauswahl `msel`/`nmsel`, Regeln `cands`/`ncand` (`vx_ce_refresh`, `vx_ce_take`, `vx_ce_matches`). PC-Begleiter: `tools/companion.sh`.
+  - Testen: `vxunit DIR package/system/bios.bin` (Kern am Mine-Storm-Bild) und `vxcolor` mit einer Befehlsdatei: Ausgabe und PNGs vor und nach einer Änderung vergleichen (ohne `save` und `send`).
+- **Prüfsummen:** `vx_cart_crc`, `vx_colors_game` (jedes Programm ruft es beim Öffnen des Spiels), `vx_colors_file_fits`; Suche nach ORIGINAL per `crc =` in `vx_colors_profile_path` (k 0), eigene über `own_id` (Name, sonst ein eigenes Profil mit der Prüfsumme).
+- **Menüsteuerung:** `vx_menu_nav` (`controls.c`, Funktionen `menu_*` ab `VX_FN_MENU`) für `menu.c` `read_nav` und `browser.c`; Menüseite `P_MENUCTL`, `fn_mark` legt Menüfunktionen immer für alle Spiele ab.
+- **AtariVox automatisch:** Kern `speakjet.c` `sp_auto`/`speech_put`/`speech_byte`, `vecx.c` `p2_set` (7); `vx_set_port2_device` schickt für jedes Sprachmodul 7; Menü `L_P2_DEV` springt über VECVOX/VECVOICE. Kernänderungen stehen in `third_party/vectrex_emu/VENDOR.md`.
+- **Sprachlautstärke:** `vx_config.speech_volume`, Menü `L_SPEECH_VOL`, `vx_set_port2_device` setzt `vt_speech_sep`, `vx_audio_feed(…, second)`, Aufruf in `main.c`.
+- **Studio Kopieren:** `LIST_GAMES` (Python-Prüfsummen) + `LIST_CMD` über `list_cabinet` (`sh -s`), `CabGame.crc`, `same_game`/`pc_index_of`/`on_cabinet`, `copy_to_cabinet`/`copy_to_pc`, Kontextmenüs in `panel_games`. Testschalter `--list-script DATEI`, `--demo-connect [cabinet]`.
+- **Studio Liste/Sync:** `rom_colours`/`g_rom_colours` und `colour_mark` (Markierungen), `LIST_CMD` liest auch `colors/` (O-Zeilen, `CabOriginal`), `sync_script`/`cabinet_sync`/`sync_window`. Testschalter `--sync-script DATEI` schreibt das Skript statt zu senden.
+- **Objektbereich `urange`** (wie `xrange`, aber für U): `vxcolor colour … urange LO-HI`, Studio `g_ur`/`g_ur_lo`/`g_ur_hi` in `add_extras`. Erstes Profil damit: Berzerk Ultimate. `vxcolor pieces` zeigt `object`.
+- **Studio-Steuerung:** `BIND[]` (Aktionen, Standard in `key0/pad0`), `bind_held`/`bind_pressed`, `controls_window`, Ereignisse im SDL-Loop (`g_bind_wait`). Darstellung: `draw_picture` (Markierung: Rest gedimmt, Gewähltes dicker; Glow nur ohne Wahl).
+- **SAME KIND** (`VX_CE_KIND`, `coloredit.c` `kind_rule`): Form + Trennung nach Objekt (nur Listen im RAM, Figuren anderen Aufbaus: Teile/Punkte) + Trennung kleiner Marken nach Länge (nur Stücke aus Einzelstrichen, ≥ 8 Marken innerhalb 1,3×, nächste ≥ 2×). Studio startet damit; Vorschau über `preview_cands`/`add_extras` (gleiche Bedingungen wie der Farbklick). Demo-Schalter der Studio: `--demo-len`, `--demo-area`, `--demo-unpick`.
+- **Regelbedingungen `length LO-HI` und `area X0-X1 Y0-Y1`** (Länge bzw. Ort der Linie in Canvas-Einheiten, `VX_C_LENGTH`/`VX_C_AREA`, `vx_cond.lo2/hi2` für y): `vxcolor colour … length|area` (in %), Studio Advanced → Only lines of a length / Only where it is now. Erstes Profil damit: Clean Sweep (`sweep.ini`).
+- **Farbprofile:** `src/render/colors.c`, Profile in `package/colors/<id>.ini` (ORIGINAL) und eigene in `save/colors/<id>[.k].ini` (`vx_colors_profile_path`, `vx_colors_setting_used/step`, `vx_colors_load_setting`). Der Editor-Kern schreibt nur eigene (`vx_coloredit_target`). Die Linien-Markierung steckt in `vx_core.c` (`vt_line`-Wrapper, `tags_follow`).
+  - Adressen finden: `build/core/vxtest.exe BIOS CART N --skip-bios --input "60-64:8,…" --tags x.csv --svg x.svg` (SVG nach X-High-Byte eingefärbt).
+  - Ergebnis prüfen: `build/pc/vxshot.exe system/bios.bin CART N x.svg …` (mit Profil).
+- **Zwei Ebenen im Menü:**
+  - `u->scope` legt fest, was bearbeitet wird: `all` (ALLE SPIELE) oder `cfg` (DIESES SPIEL).
+  - `u->own[]` markiert die eigenen Werte des Spiels. `sync()` hält `cfg` gleich `all` plus eigene Werte.
+  - Die Felder einer Zeile stehen in `line_fields()`, die Feld-API in `config.h` (`vx_config_field`, `vx_config_differs`, `vx_config_copy_field`).
+  - Steuerung: `vx_fn_table` (`controls.h`). `u->fn_changed[f]` hält die Ebene fest, auf der eine Funktion belegt wurde. `vx_menu_save` schreibt pro Funktion.
 - **Optionsmenü:** `src/platform/menu.c`. Seiten: `page_lines`, Werte: `describe`, Änderungen: der Switch in `vx_menu_update`, Speichern: `vx_menu_save`. Eingebunden in `main.c` `run_game`.
   - Screenshots: `vectrex --minestorm --windowed --menu SEITE --frames 300`, Fenster mit `scratchpad/shot.ps1` aufnehmen oder per PowerShell `CopyFromScreen`.
   - Logik-Tests: `build/pc/vxunit.exe ORDNER`.
   - Keine simulierten Tasten auf dem Desktop des Besitzers.
+  - Keine Screenshots, solange der Besitzer am PC arbeitet. Am 2026-11-08 hat eine Aufnahme statt des Fensters seinen Bildschirm erfasst, die Datei wurde sofort gelöscht.
+- **Auf den Automaten:** `sh tools/deploy.sh` nach dem Pi-Build (installiert und startet, siehe `BUILD.md`). Das Log liegt in `/persistent/games/vectrex/run.log`.
 - **Automat:** Programme nie ohne Auftrag am Board starten. Headless sind nur `vxtest` und `vectrex --list` unbedenklich. Jeder andere Aufruf öffnet laut advmame.rc das Board.
 - **UVMC2-Tempo:** Der Modus wird über die Umgebungsvariable `VT_UVM2_FAST` gesetzt, bevor `vx_open` aufgerufen wird (`main.c`). Die Messwerte stehen in `STATUS.md`.
 - **Offen und nächste Schritte:** siehe `STATUS.md`.

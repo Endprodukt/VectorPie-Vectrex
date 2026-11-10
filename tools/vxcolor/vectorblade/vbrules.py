@@ -1,0 +1,76 @@
+# (name, conditions, colour): first match wins
+WHITE = "E8ECFF"
+RULES = [
+    # --- the HUD and the RAM objects ---
+    ("score",        "u C85A-C862", "FFF0A0"),
+    ("hud_icons",    "u C8BE-C8C6", "80E0FF"),
+    ("stars",        "u C800-CBFF dot", "8C9CC8"),
+    ("ram_lines",    "u C800-CBFF", "FFE040"),
+    ("gce",          "u F000-FFFF", "E0E0E0"),
+    # --- texts and menus ---
+    ("menu_text",    "u 0000-0340", "D0DCFF"),
+    ("gameover",     "u 0500-0530", "FF5040"),
+    ("rank_text",    "u 06E0-0720", "FFD040"),
+    ("enemies_txt",  "u 0AF0-0B10", "FF9030"),
+    ("level_big",    "u 0CF0-0CF8", "FFE040"),
+    ("kamikaze",     "u 0D30-0D50", "FF8030"),
+    ("stats_text",   "u 1700-17B0", "80E0FF"),
+    ("ach",          "u 1D80-1E00", "80E0FF"),
+    ("beam",         "u 1E3C-1E4C", "FF60FF"),
+    ("ship",         "u 1E00-2060", "A8CCFF"),
+    ("ship_pic",     "u 2120-2200", "A8CCFF"),
+    ("ach_text",     "u 2300-24FF", "80E0FF"),
+    ("man_run",      "u 2AF0-2C80", "FFD8A8"),
+    # --- era 1: levels 1-25 ---
+    ("e1_bat",       "u 2E40-33F0", "4CFF5A"),
+    ("e4_darts",     "u 3404-3430", "FF4FD8"),
+    ("e1_bird",      "u 3460-3710", "FFA030"),
+    # --- era 2: levels 26-50 ---
+    ("e2_cat",       "u 3716-3A20", "B07CFF"),
+    ("e2_debris",    "u 3A60-3BE0", "C8A070"),
+    ("e2_ships",     "u 3C10-3F30", "FF5A4A"),
+    ("e1_4136",      "u 4130-41E0", "FF4040"),
+    # --- the bosses ---
+    ("boss4",        "u 4230-4460", "B07CFF"),
+    ("boss4_c",      "u 4880-4920", "B07CFF"),
+    ("bee_wings",    "u 4920-499F", "9FE8FF"),
+    ("bee_face",     "u 49A0-49B8", "FF3030"),
+    ("bee_head",     "u 49B9-49E0", "FFD020"),
+    ("bee_eggs",     "u 8000-8100", "FFA020"),
+    ("boss4_b",      "u 5810-5880", "B07CFF"),
+    ("boss_parts",   "u 5880-58A0", "FF8040"),
+    ("boss2",        "u 59A0-5DE0", "FF5030"),
+    ("boss3",        "u 5E00-6250", "C8D0E0"),
+    ("boss3_b",      "u 1B40-1B70", "C8D0E0"),
+    # --- the desktop ---
+    ("desk",         "u 4460-47F8", "7FA8E0"),
+    ("man_stand",    "u 47FF-4880", "FFD8A8"),
+    ("desk_screen",  "u 4940-4970", "60FF80"),
+    ("boss1",        "u 4A20-5810", "FF8040"),
+    # --- bonus items, letters, logo ---
+    ("bonus",        "u 6250-6CB0", "FFC830"),
+    ("letters",      "u 6CF0-71FF", "FFC830"),
+    ("boot_ship",    "u 7200-7560", "A8CCFF"),
+    ("bonus2",       "u 7560-7860", "FFC830"),
+    ("logo",         "u 7867-79FF", "FF8C20"),
+    ("misc7",        "u 7A00-8860", "FFC830"),
+    ("titles",       "u 8860-93FF", "FFE060"),
+    ("hs_text",      "u 9400-9780", "FFD040"),
+    ("saucer",       "u 9EC0-A4FF", "FF60FF"),
+    ("boxx",         "u A190-A200", WHITE),
+    # --- era 3: levels 51-75 ---
+    ("e3_a566",      "u A560-A570", "FF4FD8"),
+    ("e3_xwing",     "u A670-A8B0", "4FD8FF"),
+    ("e3_ring",      "u A8B6-AC98", "FF4FD8"),
+    ("e3_acb8",      "u ACB0-AD50", "FFB030"),
+    ("e3_star",      "u AD7F-B190", "FFE640"),
+    # --- era 4: levels 76-100 ---
+    ("e4_crescent",  "u B1B0-B4F0", "4CFF5A"),
+    ("e4_tri",       "u B51C-B860", "FF6040"),
+    ("e4_rocket",    "u B8A0-BB50", "7CB8FF"),
+    ("e2_stars",     "u BC00-BCA0", "FFE640"),
+    # --- drawn without a table address: by the routine ---
+    ("boss1_inner",  "caller 0231-0231", "FFD020"),
+    ("boss1_rest",   "caller 49C0-4A00", "FFD020"),
+    ("help_text",    "caller 631D-631D", "FFC830"),
+]
