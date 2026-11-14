@@ -1,6 +1,6 @@
 # VectorPie Vectrex Emulator – Status
 
-Stand: 2026-11-10 · Version 0.1.0 (lokales Repo, kein Remote) · auf dem Automaten in `/persistent/games/vectrex` liegt der aktuelle Stand (Programm-md5 `eab2ca52919040b7a40c7c074e197b22`, 2026-11-10, ohne Editor im Emulator) mit Sprach-ROM, `vxcolor`, allen elf Farbprofilen (neu: Vectorblade, geändert: Pole Position) und der Cartridge `vectorblade.bin` in `/persistent/games/rom/vectrex` (ohne Speicherdatei: Vectorblade verlangt dort beim ersten Start seine Kalibrierung). **Installiert, nicht gestartet:** beim Aufspielen lief Tempest auf der Platine. Spiel-Liste lief dort zuletzt mit 50 fps, 0,4 ms pro Bild.
+Stand: 2026-11-10 · Version 0.1.0 (privates Repo https://github.com/Endprodukt/VectorPie-Vectrex, Release `v0.1.0` am 2026-11-14 mit `vectrex-0.1.0.vpk` und `Vectrex-Companion-0.1.0-windows.zip`, beide ohne Sprach-ROM und ohne Spiele) · auf dem Automaten in `/persistent/games/vectrex` liegt der aktuelle Stand (Programm-md5 `eab2ca52919040b7a40c7c074e197b22`, 2026-11-10, ohne Editor im Emulator) mit Sprach-ROM, `vxcolor`, allen elf Farbprofilen (neu: Vectorblade, geändert: Pole Position) und der Cartridge `vectorblade.bin` in `/persistent/games/rom/vectrex` (ohne Speicherdatei: Vectorblade verlangt dort beim ersten Start seine Kalibrierung). **Installiert, nicht gestartet:** beim Aufspielen lief Tempest auf der Platine. Spiel-Liste lief dort zuletzt mit 50 fps, 0,4 ms pro Bild.
 
 ## Am Automaten (2026-11-08, Pi 5, USB-DVG `/dev/ttyACM0`)
 - **Läuft:**
@@ -298,6 +298,7 @@ Ein zyklengenauer Vectrex-Emulator als VectorPie-Spielpaket (`.vpk`) für den Ve
 - UVMC2/PiTrex: kein 6809-PC, dort nur `dot`/`line`/`bright`.
 
 ## Bekannte Probleme und Einschränkungen
+- **Lizenz:** Der Kern (Vectrex_EMU) steht unter GPL-3.0. Wer Programme davon bekommt, hat Anspruch auf den Quelltext. Öffentliche Downloads bei geschlossenem Code gehen darum nicht (außer mit Erlaubnis des Autors hugonl31). Solange das Repo privat ist und nur Leute mit Zugriff laden, ist das kein Problem. Die Vectrex-BIOS liegt in Repo und Paketen; ihre Weitergabe ist üblich, aber nicht ausdrücklich erlaubt.
 - **Vectorblade-Textkalibrierung wirkt im Emulator kaum:** Die Spieltexte stehen etwa 7° schräg, und der Kalibrierwert für Text (`$C8A1`, setzt die Null-Referenz über den Multiplexer) ändert daran fast nichts. Vermutlich lädt der Kern die Referenz zu schnell um (`ZREF_K`), sodass der Wert sofort vom folgenden `$FF` überschrieben wird. Am echten Vectrex richtet der Wert den Text gerade. Nicht untersucht.
 - **UVMC2 Demo** ist auf dem Pi 5 zu langsam (0,48-fach), weil sie nicht über die SDK-Listen-Ausgabe läuft. Eine Lösung wäre z. B. der Mehr-Thread-Modus des Kerns, falls der für solche Spiele greift. Das ist noch nicht untersucht.
 - **Last Human (UVMC2)** zeichnet rund 5.700 Vektoren pro Bild. Auf dem USB-DVG (etwa 3 Mio. Punkte/s) wird das wahrscheinlich dunkel oder flimmert, auf BeamForge geht es eher. Muss am Automaten geprüft werden, eventuell braucht es `board_hz` pro Spiel.
