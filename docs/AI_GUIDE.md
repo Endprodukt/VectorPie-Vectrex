@@ -39,7 +39,7 @@ vxcolor pole "send use"                                   # (PC) to the cabinet,
 ```
 
 1. **Reach the scene.** `run N` plays N frames (50 a second). Add `stick X,Y` (each -1..1, y 1 = up) and `buttons 1234` (the digits of the buttons held). Example: `run 100; run 1700 buttons 4` holds button 4 (Pole Position's gas) from frame 100. Take a `shot` after a few runs to see where the game is. Title screens come first, a game often starts with button 1–4.
-2. **Look.** Use `shot FILE.png labels` and read the image. `figures` gives, for each figure, its number, line count, box (x0,y0–x1,y1 in %), centre, piece and the rules that colour it now. `lines N` lists one figure's lines.
+2. **Look.** Use `shot FILE.png labels` and read the image. `figures` gives, for each figure, its number, line count, box (x0,y0–x1,y1 in %), centre, piece and the rules that colour it now. `lines N` lists one figure's lines, `lines all` every lit line, each with what drew it (routine `pc`, list `x`, object `u`, `caller`): the values a rule's conditions go by.
 3. **Pick.** The default is `what smart`. Then use one of:
    - `pick figure N[,N…]` for whole figures (the most robust way),
    - `pick at X Y` for the line nearest a point (smart: its whole figure),

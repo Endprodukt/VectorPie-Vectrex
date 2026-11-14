@@ -10,6 +10,7 @@ HEAD = """; vectorblade: colour profile (src/render/colors.h), made with vxcolor
 crc = 2A806F46
 """
 from vbrules import RULES
+from vbmenu import MENU
 import json
 DET = {"bat": {"inner": "FFE040"}, "bird": {"inner": "FF4030"}, "cat": {"inner": "FF70C0"},
        "cres": {"inner": "FFE040"}, "rocket": {"inner": "E8F0FF"}, "darts": {"inner": "FFE040", "small": "FFE040"},
@@ -25,7 +26,7 @@ for fam, rows in det.items():
     for i, (lo, hi, tier) in enumerate(rows):
         col = DET.get(fam, {}).get(tier)
         if col: DETAIL.append((f"{fam}_{tier[0]}{i}", f"u {lo:04X}-{hi:04X}", col))
-RULES = RULES[:5] + DETAIL + RULES[5:]
+RULES = RULES[:5] + MENU + DETAIL + RULES[5:]
 lines = [HEAD]
 for name, cond, col in RULES:
     lines.append(f"{name:<14} = {cond} : {col}\n")

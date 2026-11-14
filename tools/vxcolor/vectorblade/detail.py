@@ -38,20 +38,33 @@ for m in d:
 out = {}; nrules = 0
 for name, (a, z) in FAM.items():
     rows = []
-    for b in range(len(blocks)):
+    fam = [b for b in range(len(blocks)) if a <= blocks[b][0] <= z]
+    # the frames of a family with the same count of entries are the same figure in another pose, drawn in the same
+    # order: entry i is the same part in each. So the radii of entry i are pooled over these frames, and every frame
+    # gets the same split, also one that was seen too seldom to tell by itself.
+    pool = collections.defaultdict(list)     # (count of entries, index) -> radii
+    for b in fam:
+        ks = sorted(offs[b])
+        for i, k in enumerate(ks): pool[(len(ks), i)] += rad.get((b, k), [])
+    split = {}
+    for n in {len(offs[b]) for b in fam}:
+        for limit in (0.55, 0.60):           # a figure whose parts all lie further out: a wider centre
+            tiers = []
+            for i in range(n):
+                r = pool[(n, i)]
+                tiers.append("inner" if r and sum(r) / len(r) < limit else "outer")
+            # smooth: a lone entry takes its neighbours' tier
+            for i in range(len(tiers)):
+                l = tiers[i - 1] if i else tiers[-1]; rr = tiers[(i + 1) % len(tiers)]
+                if l == rr != tiers[i]: tiers[i] = l
+            if "inner" in tiers: break
+        split[n] = tiers
+    for b in fam:
         lo, hi = blocks[b]
-        if not (a <= lo <= z): continue
         ks = sorted(offs[b])
         if len(ks) < 6:
             rows.append((lo, hi, "small")); continue
-        tiers = []
-        for k in ks:
-            r = rad.get((b, k))
-            tiers.append("inner" if r and sum(r) / len(r) < 0.55 else "outer")
-        # smooth: a lone entry takes its neighbours' tier
-        for i in range(len(tiers)):
-            l = tiers[i - 1] if i else tiers[-1]; rr = tiers[(i + 1) % len(tiers)]
-            if l == rr != tiers[i]: tiers[i] = l
+        tiers = split[len(ks)]
         for i, k in enumerate(ks):
             if tiers[i] != "inner": continue
             ulo = lo + k; uhi = (lo + ks[i + 1] - 1) if i + 1 < len(ks) else hi

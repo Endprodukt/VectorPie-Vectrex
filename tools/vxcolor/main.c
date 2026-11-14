@@ -50,7 +50,8 @@ static const char *HELP =
 "Looking\n"
 "  shot FILE.png [labels] [width W]      the picture with the colours; labels: each figure's number\n"
 "  figures                               every figure (lines connected): number, lines, box, colour, rules\n"
-"  lines FIGURE                          the lines of one figure: line index, ends, rule\n"
+"  lines FIGURE|all                      the lines of one figure (all: every lit line): index, ends, piece,\n"
+"                                        what drew it (routine pc, list x, object u, caller), rule\n"
 "  uncoloured                            figures with lines no rule colours\n"
 "  palette                               the colour names\n"
 "Picking (what the colour goes to)\n"
@@ -358,15 +359,17 @@ static void list_figures(int only_uncoloured)
     if (only_uncoloured && !shown) printf("every line has a rule\n");
 }
 
+/* The lines of figure f, or (f < 0) every lit line: where it is and what drew it */
 static void list_lines(int f)
 {
     const vx_line *l; int n = lines(&l);
     if (g_nfig < 0) figures_cut();
     for (int i = 0; i < n && i < VX_CE_MAXLINES; i++) {
-        if (g_fig[i] != f) continue;
+        if (f >= 0 ? g_fig[i] != f : !l[i].z) continue;
         const vx_rule *u = vx_colors_find(&g_colors, &l[i]);
-        printf("line %d: %.1f,%.1f -> %.1f,%.1f, brightness %d, piece %u part %u stroke %u, %s\n", i, pct_x(l[i].x0), pct_y(l[i].y0),
-               pct_x(l[i].x1), pct_y(l[i].y1), l[i].z, l[i].piece, l[i].part, l[i].stroke, u ? u->name : "no rule");
+        printf("line %d: %.2f,%.2f -> %.2f,%.2f, brightness %d, piece %u part %u stroke %u, figure %d, pc %04X x %04X u %04X caller %04X, %s\n",
+               i, pct_x(l[i].x0), pct_y(l[i].y0), pct_x(l[i].x1), pct_y(l[i].y1), l[i].z, l[i].piece, l[i].part, l[i].stroke, g_fig[i],
+               l[i].tag.pc, l[i].tag.x, l[i].tag.u, l[i].tag.caller, u ? u->name : "no rule");
     }
 }
 
@@ -879,7 +882,7 @@ static int command(char *c)
     }
     if (!strcmp(cmd, "figures")) { list_figures(0); return 0; }
     if (!strcmp(cmd, "uncoloured") || !strcmp(cmd, "uncolored")) { list_figures(1); return 0; }
-    if (!strcmp(cmd, "lines")) { list_lines(atoi(w[1])); return 0; }
+    if (!strcmp(cmd, "lines")) { list_lines(!strcmp(w[1], "all") ? -1 : atoi(w[1])); return 0; }
     if (!strcmp(cmd, "palette")) {
         for (int i = 0; i < vx_ce_palette_count(); i++) {
             uint8_t r, g, b;
